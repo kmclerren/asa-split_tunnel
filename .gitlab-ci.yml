@@ -1,0 +1,21 @@
+image: ansible-custom:latest
+
+before_script:
+  # run ssh-agent
+  - mkdir -p ~/.ssh
+  - eval $(ssh-agent -s)
+  - ssh-add <(echo "$SSH_PRIVATE_KEY")
+  - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+  - export ANSIBLE_CONFIG=./ansible.cfg
+
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  only:
+  - master
+  script:
+    - ansible-playbook --version
+    - echo $ANSIBLE_VAULT_PASSWORD > .vault_password.txt
+    - ansible-playbook -i hosts -u ansible --vault-password-file ./.vault_password.txt asa-split_tunnel.yml

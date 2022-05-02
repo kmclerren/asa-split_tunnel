@@ -1,0 +1,5 @@
+[asa]
+dev-net-asa-001
+
+[asa:vars]
+ansible_network_os=asa

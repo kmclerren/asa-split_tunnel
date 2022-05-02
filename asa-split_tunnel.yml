@@ -1,0 +1,57 @@
+---
+- name: ASA Split Tunnel Update
+  connection: network_cli
+  hosts: asa
+  vars_files:
+    - domains.yml
+    - vault.yml
+  gather_facts: no
+  become: no
+
+  tasks:
+
+    - name: "TASK 1: Remove from group-policy"
+      asa_config:
+        lines:
+          - no anyconnect-custom dynamic-split-exclude-domains
+        parents: group-policy your_parent_1 attributes
+
+    - name: "TASK 2: Remove from group-policy"
+      asa_config:
+        lines:
+          - no anyconnect-custom dynamic-split-exclude-domains
+        parents: group-policy your_parent_2 attributes
+
+    - name: "TASK 3: Remove domain list"
+      asa_config:
+        lines:
+          - no anyconnect-custom-data dynamic-split-exclude-domains split_domains
+
+    - name: "TASK 4: Add domain list"
+      asa_config:
+        lines:
+          - "anyconnect-custom-data dynamic-split-exclude-domains split_domains {{ domains.0 }}"
+          - "anyconnect-custom-data dynamic-split-exclude-domains split_domains {{ domains.1 }}"
+          - "anyconnect-custom-data dynamic-split-exclude-domains split_domains {{ domains.2 }}"
+      with_indexed_items: "{{ domains }}"
+
+    - name: "TASK 5: Add to group-policy"
+      asa_config:
+        lines:
+          - anyconnect-custom dynamic-split-exclude-domains value split_domains 
+        parents: group-policy your_parent_1 attributes
+
+    - name: "TASK 6: Add to group-policy"
+      asa_config:
+        lines:
+          - anyconnect-custom dynamic-split-exclude-domains value split_domains
+        parents: group-policy your_parent_2 attributes
+        save: yes
+
+    - name: Sending message to slack channel
+      slack:
+        token: "{{ slack_token }}"
+        channel: "#your_channel"
+        domain: "company.slack.com"
+        parse: "none"
+        msg: "Ansible: {{ inventory_hostname }} - Updating split-tunnel configuration"
